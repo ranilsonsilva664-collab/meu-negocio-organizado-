@@ -347,6 +347,26 @@ function LoginScreen({ theme, setTheme }:{ theme:"light"|"dark"; setTheme:(t:"li
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === "accepted") setInstallPrompt(null);
+  };
 
   const handleLogin = async () => {
     if (!email || !pass) return;
@@ -407,6 +427,27 @@ function LoginScreen({ theme, setTheme }:{ theme:"light"|"dark"; setTheme:(t:"li
           <p className={`mt-2 text-[13.5px] ${theme==="dark"?"text-zinc-400":"text-zinc-600"}`}>
             Acesse a sua conta exclusiva.
           </p>
+
+          {(!isStandalone && (installPrompt || isIos)) && (
+            <div className={`mt-4 p-4 rounded-xl border flex flex-col gap-3 ${theme==="dark"?"bg-[#142036] border-[#2b3e66]":"bg-[#eff4ff] border-[#bfd3ff]"}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#20b46a] flex items-center justify-center shrink-0">
+                  <span className="text-white font-[800] text-sm">MN</span>
+                </div>
+                <div>
+                  <div className="font-[800] text-[14px]">Instale o App</div>
+                  <div className="text-[12px] opacity-80 leading-tight">
+                    {isIos ? "Para instalar no iPhone, toque em Compartilhar no Safari e 'Adicionar à Tela de Início'." : "Adicione à tela inicial para acesso rápido e experiência de aplicativo nativo."}
+                  </div>
+                </div>
+              </div>
+              {!isIos && installPrompt && (
+                <button onClick={handleInstall} className="w-full py-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-[13px] font-[700] rounded-lg transition">
+                  Instalar Aplicativo
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="mt-7 space-y-4">
             {error && <div className="text-red-500 text-sm font-bold bg-red-100 p-3 rounded-xl">{error}</div>}
