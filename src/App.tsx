@@ -167,18 +167,10 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
         {/* Sidebar */}
         <aside className={`hidden lg:flex w-[270px] shrink-0 flex-col ${theme==="dark" ? "bg-[#0e1624] border-white/[.07]" : "bg-white border-zinc-200"} border-r sticky top-0 h-screen`}>
           <div className="px-6 pt-7 pb-6">
-            <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-[#2563eb] to-[#19b36b] flex items-center justify-center soft-shadow">
-                <span className="text-white font-extrabold text-[18px] tracking-tight">MN</span>
-              </div>
-              <div>
-                <div className="text-[17px] font-[800] tracking-[-0.012em]">Meu Negócio</div>
-                <div className="text-[17px] font-[800] tracking-[-0.012em] -mt-1">Organizado</div>
-              </div>
+            <div className="flex items-center">
+              <img src="https://res.cloudinary.com/dmxeqe939/image/upload/v1784040120/ChatGPT_Image_14_de_jul._de_2026_11_41_04_c91pag.png" alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
             </div>
-            <div className={`mt-4 text-[11px] tracking-widest font-[700] uppercase ${theme==="dark"?"text-zinc-400":"text-zinc-500"}`}>
-              SaaS Premium • v2.1
-            </div>
+
           </div>
           <nav className="px-3 space-y-1">
             {[
@@ -303,7 +295,7 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
           </div>
 
           <footer className={`px-4 sm:px-7 lg:px-9 pb-10 text-[12px] ${theme==="dark"?"text-zinc-500":"text-zinc-500"}`}>
-            Meu Negócio Organizado — SaaS premium para pequenos negócios. Dados salvos localmente via LocalStorage.
+            Meu Negócio Organizado — Sistema para pequenos negócios. Dados salvos em nuvem para sua segurança.
           </footer>
         </div>
       </div>
@@ -312,7 +304,7 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
       {mobileNavOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50" onClick={()=>setMobileNavOpen(false)} />
-          <div className={`absolute top-0 left-0 w-[300px] h-full ${theme==="dark"?"bg-[#0e1624]":"bg-white"} shadow-xl p-4 overflow-y-auto`}>
+          <div className={`absolute top-0 left-0 w-[300px] h-[100dvh] ${theme==="dark"?"bg-[#0e1624]":"bg-white"} shadow-xl p-4 overflow-y-auto pb-12`}>
             <div className="flex items-center justify-between mb-4">
               <div className="font-[800]">Menu</div>
               <button onClick={()=>setMobileNavOpen(false)} className="text-sm px-3 py-1.5 rounded-lg border">Fechar</button>
@@ -390,14 +382,11 @@ function LoginScreen({ theme, setTheme }:{ theme:"light"|"dark"; setTheme:(t:"li
       <div className={`relative w-full max-w-[980px] mx-4 grid grid-cols-1 lg:grid-cols-2 gap-6`}>
         <div className={`hidden lg:flex flex-col justify-between rounded-[28px] p-10 card-border soft-shadow ${theme==="dark"?"bg-[#0f1829]":"bg-white"}`}>
           <div>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#20b46a] flex items-center justify-center">
-                <span className="text-white font-[800]">MN</span>
-              </div>
-              <div className="text-[22px] font-[800] tracking-[-0.012em]">Meu Negócio<br/>Organizado</div>
+            <div className="flex items-center mb-5">
+              <img src="https://res.cloudinary.com/dmxeqe939/image/upload/v1784040120/ChatGPT_Image_14_de_jul._de_2026_11_41_04_c91pag.png" alt="Logo" className="h-16 w-auto object-contain rounded-xl" />
             </div>
             <p className={`${theme==="dark"?"text-zinc-300":"text-zinc-600"} text-[15px] leading-relaxed`}>
-              O SaaS premium para hamburguerias, açaiterias, pizzarias, lanchonetes, salões, barbearias e pequenos comércios crescerem com organização financeira real.
+              O sistema para hamburguerias, açaiterias, pizzarias, lanchonetes, salões, barbearias e pequenos comércios crescerem com organização financeira real.
             </p>
             <div className="grid grid-cols-2 gap-3 pt-7">
               {[
@@ -431,9 +420,7 @@ function LoginScreen({ theme, setTheme }:{ theme:"light"|"dark"; setTheme:(t:"li
           {(!isStandalone && (installPrompt || isIos)) && (
             <div className={`mt-4 p-4 rounded-xl border flex flex-col gap-3 ${theme==="dark"?"bg-[#142036] border-[#2b3e66]":"bg-[#eff4ff] border-[#bfd3ff]"}`}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#20b46a] flex items-center justify-center shrink-0">
-                  <span className="text-white font-[800] text-sm">MN</span>
-                </div>
+                <img src="https://res.cloudinary.com/dmxeqe939/image/upload/v1784040120/ChatGPT_Image_14_de_jul._de_2026_11_41_04_c91pag.png" alt="Logo" className="h-10 w-auto object-contain shrink-0 rounded-xl" />
                 <div>
                   <div className="font-[800] text-[14px]">Instale o App</div>
                   <div className="text-[12px] opacity-80 leading-tight">
@@ -1477,7 +1464,7 @@ function ConfigView({ theme, setTheme, settings, setSettings }:{
       <div className={`rounded-[22px] card-border soft-shadow p-5 ${theme==="dark"?"bg-[#0e1626]":"bg-white"}`}>
         <div className="font-[800] mb-2">Sobre o sistema</div>
         <div className="text-[13.5px] text-zinc-600">
-          Meu Negócio Organizado é um SaaS premium focado em pequenos empreendedores: hamburguerias, açaiterias, pizzarias, lanchonetes, salões, barbearias e lojas.
+          Meu Negócio Organizado é um sistema focado em pequenos empreendedores: hamburguerias, açaiterias, pizzarias, lanchonetes, salões, barbearias e lojas.
         </div>
       </div>
     </div>
@@ -1559,7 +1546,7 @@ function Modal({ theme, title, children, onClose }:{
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/45" onClick={onClose}/>
-      <div className={`relative w-[95%] max-w-3xl rounded-[22px] card-border soft-shadow p-5 ${theme==="dark"?"bg-[#0f182a] text-zinc-100":"bg-white"}`}>
+      <div className={`relative w-[95%] max-w-3xl max-h-[90dvh] overflow-y-auto rounded-[22px] card-border soft-shadow p-5 pb-8 ${theme==="dark"?"bg-[#0f182a] text-zinc-100":"bg-white"}`}>
         <div className="flex items-center justify-between mb-3">
           <div className="text-[17px] font-[800]">{title}</div>
           <button onClick={onClose} className="text-[13px] px-3 py-1.5 rounded-lg border">Fechar</button>
