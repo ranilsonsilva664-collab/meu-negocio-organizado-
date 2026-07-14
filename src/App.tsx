@@ -132,7 +132,7 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
   const [products, setProducts] = useLocalState<Product[]>(uid, "mno_products_v2", SEED_PRODUCTS);
   const [clients, setClients] = useLocalState<Client[]>(uid, "mno_clients_v2", SEED_CLIENTS);
   const [transactions, setTransactions] = useLocalState<Transaction[]>(uid, "mno_tx_v2", SEED_TRANSACTIONS);
-  const [sales] = useLocalState<Sale[]>(uid, "mno_sales_v2", SEED_SALES);
+  const [sales, setSales] = useLocalState<Sale[]>(uid, "mno_sales_v2", SEED_SALES);
   const [goals, setGoals] = useLocalState<Goal>(uid, "mno_goals_v1", {
     monthlyRevenue: 24000,
     annualRevenue: 320000,
@@ -140,7 +140,7 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
     monthlySales: 420,
   });
 
-  const [route, setRoute] = useState<"dashboard"|"financeiro"|"produtos"|"estoque"|"clientes"|"metas"|"config">("dashboard");
+  const [route, setRoute] = useState<"dashboard"|"vendas"|"financeiro"|"produtos"|"estoque"|"clientes"|"metas"|"config">("dashboard");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(()=>{
@@ -175,6 +175,7 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
           <nav className="px-3 space-y-1">
             {[
               {key:"dashboard", label:"Dashboard", icon: "🏠"},
+              {key:"vendas", label:"Caixa (PDV)", icon: "🛒"},
               {key:"financeiro", label:"Financeiro", icon: "💰"},
               {key:"produtos", label:"Produtos", icon: "📦"},
               {key:"estoque", label:"Estoque", icon: "📊"},
@@ -237,6 +238,15 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
           </header>
 
           <div className="px-4 sm:px-7 lg:px-9 py-6 sm:py-9 space-y-8">
+            {route==="vendas" && (
+              <PdvView
+                theme={theme}
+                products={products}
+                setProducts={setProducts}
+                setTransactions={setTransactions}
+                setSales={setSales}
+              />
+            )}
             {route==="dashboard" && (
               <DashboardView
                 theme={theme}
@@ -312,6 +322,7 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
             <div className="space-y-1">
               {[
                 {key:"dashboard", label:"Dashboard", icon: "🏠"},
+                {key:"vendas", label:"Caixa (PDV)", icon: "🛒"},
                 {key:"financeiro", label:"Financeiro", icon: "💰"},
                 {key:"produtos", label:"Produtos", icon: "📦"},
                 {key:"estoque", label:"Estoque", icon: "📊"},
@@ -1534,6 +1545,166 @@ export default function App() {
   return <MainApp uid={user.uid} theme={theme} setTheme={setTheme} onLogout={handleLogout} />;
 }
 
+
+/* PDV (VENDAS) */
+function PdvView({ theme, products, setProducts, setTransactions, setSales }:{
+  theme:"light"|"dark";
+  products:Product[];
+  setProducts:(p:Product[]|((prev:Product[])=>Product[]))=>void;
+  setTransactions:(t:Transaction[]|((prev:Transaction[])=>Transaction[]))=>void;
+  setSales:(s:Sale[]|((prev:Sale[])=>Sale[]))=>void;
+}){
+  const [cart, setCart] = useState<{product:Product, qty:number}[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState("Pix");
+  const [isFinalizing, setIsFinalizing] = useState(false);
+
+  const total = cart.reduce((acc, item) => acc + (item.product.price * item.qty), 0);
+
+  const addToCart = (product: Product) => {
+    setCart(prev => {
+      const exists = prev.find(i => i.product.id === product.id);
+      if (exists) {
+        return prev.map(i => i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i);
+      }
+      return [...prev, { product, qty: 1 }];
+    });
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(prev => prev.filter(i => i.product.id !== productId));
+  };
+
+  const updateQty = (productId: string, delta: number) => {
+    setCart(prev => prev.map(i => {
+      if (i.product.id === productId) {
+        const newQty = Math.max(1, i.qty + delta);
+        return { ...i, qty: newQty };
+      }
+      return i;
+    }));
+  };
+
+  const finalizeSale = () => {
+    if (cart.length === 0) return;
+    
+    // Deduct stock
+    setProducts(prev => {
+      let newProds = [...prev];
+      cart.forEach(item => {
+        const pIndex = newProds.findIndex(p => p.id === item.product.id);
+        if (pIndex >= 0) {
+          newProds[pIndex] = { ...newProds[pIndex], stock: newProds[pIndex].stock - item.qty };
+        }
+      });
+      return newProds;
+    });
+
+    // Add transaction
+    const newTx: Transaction = {
+      id: uid(),
+      type: "entrada",
+      amount: total,
+      category: "Vendas",
+      description: `Venda PDV - ${cart.length} itens`,
+      date: todayISO(),
+      paymentMethod
+    };
+    setTransactions(prev => [newTx, ...prev]);
+
+    // Add sale
+    const newSale: Sale = {
+      id: uid(),
+      date: todayISO(),
+      total,
+      items: cart.map(i => ({ productId: i.product.id, qty: i.qty, unitPrice: i.product.price }))
+    };
+    setSales(prev => [newSale, ...prev]);
+
+    setCart([]);
+    setIsFinalizing(false);
+  };
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Product List */}
+      <div className="flex-1">
+        <h2 className="text-[20px] font-[800] mb-4 tracking-tight">Produtos</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+          {products.map(p => (
+            <button key={p.id} onClick={() => addToCart(p)}
+              className={`text-left p-4 rounded-2xl card-border transition transform active:scale-95 ${theme==="dark"?"bg-[#0e1626] hover:bg-[#142036]":"bg-white hover:bg-zinc-50"}`}>
+              <div className="font-[700] text-[15px] leading-tight mb-2 line-clamp-2">{p.name}</div>
+              <div className="text-[14px] font-[800] text-[#2563EB] mb-2">{BRL.format(p.price)}</div>
+              <div className={`text-[11px] font-[600] px-2 py-1 inline-block rounded-md ${p.stock <= p.minStock ? "bg-red-100 text-red-700" : (theme==="dark"?"bg-white/10 text-zinc-300":"bg-zinc-100 text-zinc-600")}`}>
+                Estoque: {p.stock}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Cart Panel */}
+      <div className={`w-full lg:w-[340px] shrink-0 rounded-3xl card-border soft-shadow flex flex-col ${theme==="dark"?"bg-[#0e1626]":"bg-white"}`} style={{ height: "calc(100vh - 120px)", position:"sticky", top:"88px" }}>
+        <div className="p-5 border-b border-zinc-200 dark:border-white/10">
+          <h2 className="text-[18px] font-[800] tracking-tight">Carrinho</h2>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {cart.length === 0 ? (
+            <div className="text-center text-zinc-500 text-[13px] mt-10">Carrinho vazio</div>
+          ) : (
+            cart.map(item => (
+              <div key={item.product.id} className="flex justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="font-[600] text-[13.5px] truncate">{item.product.name}</div>
+                  <div className="text-[#2563EB] font-[700] text-[13px]">{BRL.format(item.product.price)}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => updateQty(item.product.id, -1)} className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm ${theme==="dark"?"bg-white/10":"bg-zinc-100"}`}>-</button>
+                  <span className="font-[700] text-[14px] w-4 text-center">{item.qty}</span>
+                  <button onClick={() => updateQty(item.product.id, 1)} className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm ${theme==="dark"?"bg-white/10":"bg-zinc-100"}`}>+</button>
+                </div>
+                <button onClick={() => removeFromCart(item.product.id)} className="text-red-500 ml-1">🗑️</button>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className={`p-5 border-t border-zinc-200 dark:border-white/10 rounded-b-3xl ${theme==="dark"?"bg-[#142036]":"bg-zinc-50"}`}>
+          <div className="flex justify-between items-center mb-4">
+            <span className="font-[600] text-zinc-500">Total</span>
+            <span className="font-[800] text-[22px] tracking-tight">{BRL.format(total)}</span>
+          </div>
+
+          {isFinalizing ? (
+            <div className="space-y-3">
+              <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+                className={`w-full p-3 rounded-xl text-[14px] font-[600] border ${theme==="dark"?"bg-[#0e1626] border-white/10 text-white":"bg-white border-zinc-300"}`}>
+                <option value="Pix">Pix</option>
+                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                <option value="Cartão de Débito">Cartão de Débito</option>
+                <option value="Dinheiro">Dinheiro</option>
+              </select>
+              <div className="flex gap-2">
+                <button onClick={() => setIsFinalizing(false)} className={`flex-1 py-3 rounded-xl font-[700] text-[14px] border transition ${theme==="dark"?"border-white/20 hover:bg-white/10":"border-zinc-300 hover:bg-zinc-100"}`}>
+                  Cancelar
+                </button>
+                <button onClick={finalizeSale} className="flex-1 py-3 rounded-xl font-[700] text-[14px] bg-[#22C55E] text-white hover:bg-[#16a34a] transition">
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setIsFinalizing(true)} disabled={cart.length === 0}
+              className="w-full py-3.5 rounded-xl font-[800] text-[15px] bg-[#2563EB] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#1d4ed8] transition shadow-lg shadow-blue-500/20">
+              Finalizar Venda
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* GENERIC UI */
 
