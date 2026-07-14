@@ -242,9 +242,11 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
               <PdvView
                 theme={theme}
                 products={products}
+                clients={clients}
                 setProducts={setProducts}
                 setTransactions={setTransactions}
                 setSales={setSales}
+                setClients={setClients}
               />
             )}
             {route==="dashboard" && (
@@ -988,7 +990,7 @@ function SummaryTile({theme, label, value, big, positive}:{theme:"light"|"dark";
   return (
     <div className={`rounded-[18px] card-border soft-shadow p-4 ${theme==="dark"?"bg-[#0e1626]":"bg-white"}`}>
       <div className="text-[11px] font-[700] text-zinc-500 tracking-wide">{label.toUpperCase()}</div>
-      <div className={`mt-2 font-[800] tracking-[-0.012em] ${big?"text-[26px]":"text-[22px]"} ${positive ? "text-[#128049]" : ""}`}>{value}</div>
+      <div className={`mt-2 font-[800] tracking-[-0.012em] ${big?"text-[26px]":"text-[22px]"} ${positive ? "text-[#128049]":""}`}>{value}</div>
     </div>
   );
 }
@@ -1264,6 +1266,13 @@ function ClientesView({ theme, clients, setClients }:{
               <div className="font-[700] text-[#1d46b9]">{BRL.format(c.totalSpent)}</div>
             </div>
             {c.notes && <div className="mt-2 text-[12px] text-zinc-600">{c.notes}</div>}
+            
+            {c.phone && (
+              <button onClick={() => window.open(`https://wa.me/55${c.phone.replace(/\D/g,'')}`, '_blank')}
+                className="mt-4 w-full py-2 rounded-xl flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-[700] text-[13px] transition">
+                <span>💬</span> WhatsApp
+              </button>
+            )}
           </div>
         ))}
         {filtered.length===0 && <div className={`rounded-[18px] card-border p-6 ${theme==="dark"?"bg-[#0e1626]":"bg-white"}`}>Nenhum cliente encontrado.</div>}
@@ -1547,15 +1556,18 @@ export default function App() {
 
 
 /* PDV (VENDAS) */
-function PdvView({ theme, products, setProducts, setTransactions, setSales }:{
+function PdvView({ theme, products, clients, setProducts, setTransactions, setSales, setClients }:{
   theme:"light"|"dark";
   products:Product[];
+  clients:Client[];
   setProducts:(p:Product[]|((prev:Product[])=>Product[]))=>void;
   setTransactions:(t:Transaction[]|((prev:Transaction[])=>Transaction[]))=>void;
   setSales:(s:Sale[]|((prev:Sale[])=>Sale[]))=>void;
+  setClients:(c:Client[]|((prev:Client[])=>Client[]))=>void;
 }){
   const [cart, setCart] = useState<{product:Product, qty:number}[]>([]);
   const [paymentMethod, setPaymentMethod] = useState("Pix");
+  const [selectedClient, setSelectedClient] = useState("");
   const [isFinalizing, setIsFinalizing] = useState(false);
 
   const total = cart.reduce((acc, item) => acc + (item.product.price * item.qty), 0);
@@ -1616,11 +1628,22 @@ function PdvView({ theme, products, setProducts, setTransactions, setSales }:{
       id: uid(),
       date: todayISO(),
       total,
+      clientId: selectedClient || undefined,
       items: cart.map(i => ({ productId: i.product.id, qty: i.qty, unitPrice: i.product.price }))
     };
     setSales(prev => [newSale, ...prev]);
 
+    // Update client stats if selected
+    if (selectedClient) {
+      setClients(prev => prev.map(c => 
+        c.id === selectedClient 
+          ? { ...c, totalSpent: c.totalSpent + total, orderCount: c.orderCount + 1, lastPurchase: todayISO() }
+          : c
+      ));
+    }
+
     setCart([]);
+    setSelectedClient("");
     setIsFinalizing(false);
   };
 
@@ -1678,6 +1701,11 @@ function PdvView({ theme, products, setProducts, setTransactions, setSales }:{
 
           {isFinalizing ? (
             <div className="space-y-3">
+              <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)}
+                className={`w-full p-3 rounded-xl text-[14px] font-[600] border ${theme==="dark"?"bg-[#0e1626] border-white/10 text-white":"bg-white border-zinc-300"}`}>
+                <option value="">Nenhum cliente (Venda avulsa)</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
               <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
                 className={`w-full p-3 rounded-xl text-[14px] font-[600] border ${theme==="dark"?"bg-[#0e1626] border-white/10 text-white":"bg-white border-zinc-300"}`}>
                 <option value="Pix">Pix</option>
