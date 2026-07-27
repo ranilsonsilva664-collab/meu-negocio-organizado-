@@ -1862,6 +1862,22 @@ function ReportsView({ theme, products, sales, transactions, clients, goals }: a
   const monthlyRevenue = monthlySales.reduce((acc:number, s:any) => acc + s.total, 0);
   const annualRevenue = annualSales.reduce((acc:number, s:any) => acc + s.total, 0);
   
+  const calcProfit = (salesList: any[]) => {
+    return salesList.reduce((acc, sale) => {
+      const cost = sale.items.reduce((cAcc:number, item:any) => {
+        const prod = products.find((p:any) => p.id === item.productId);
+        return cAcc + (item.qty * (prod?.cost || 0));
+      }, 0);
+      return acc + (sale.total - cost);
+    }, 0);
+  };
+
+  const monthlyProfit = calcProfit(monthlySales);
+  const annualProfit = calcProfit(annualSales);
+  
+  const monthlyCost = monthlyRevenue - monthlyProfit;
+  const annualCost = annualRevenue - annualProfit;
+  
   const stockTotalValue = products.reduce((acc:number, p:any) => acc + (p.cost * p.stock), 0);
   const lowStockProducts = products.filter((p:any) => p.stock <= p.minStock);
 
@@ -1892,16 +1908,39 @@ function ReportsView({ theme, products, sales, transactions, clients, goals }: a
           {/* Financeiro */}
           <section>
             <h3 className="text-[18px] font-bold mb-4 flex items-center gap-2 border-b border-zinc-200 dark:border-white/10 pb-2">💰 Resumo Financeiro</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
-                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Faturamento Mensal (Atual)</div>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Faturamento Mensal</div>
                 <div className="text-[22px] font-bold text-blue-500">{BRL.format(monthlyRevenue)}</div>
                 <div className="text-[12px] text-zinc-400 mt-1">Meta: {BRL.format(goals.monthlyRevenue)}</div>
               </div>
               <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
-                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Faturamento Anual (Atual)</div>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Custo Estimado (Mês)</div>
+                <div className="text-[22px] font-bold text-red-500">{BRL.format(monthlyCost)}</div>
+                <div className="text-[12px] text-zinc-400 mt-1">Custo base dos produtos vendidos</div>
+              </div>
+              <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Lucro Bruto (Mês)</div>
+                <div className="text-[22px] font-bold text-green-500">{BRL.format(monthlyProfit)}</div>
+                <div className="text-[12px] text-zinc-400 mt-1">Meta: {BRL.format(goals.monthlyProfit)}</div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Faturamento Anual</div>
                 <div className="text-[22px] font-bold text-blue-500">{BRL.format(annualRevenue)}</div>
                 <div className="text-[12px] text-zinc-400 mt-1">Meta: {BRL.format(goals.annualRevenue)}</div>
+              </div>
+              <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Custo Estimado (Ano)</div>
+                <div className="text-[22px] font-bold text-red-500">{BRL.format(annualCost)}</div>
+                <div className="text-[12px] text-zinc-400 mt-1">Custo base dos produtos vendidos</div>
+              </div>
+              <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Lucro Bruto (Ano)</div>
+                <div className="text-[22px] font-bold text-green-500">{BRL.format(annualProfit)}</div>
+                <div className="text-[12px] text-zinc-400 mt-1">Com base nas vendas anuais</div>
               </div>
             </div>
           </section>
