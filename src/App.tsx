@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "./utils/firebase";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { signInWithEmailAndPassword, onAuthStateChanged, updatePassword } from "firebase/auth";
 import { AdminPanel } from "./AdminPanel";
 
 type ID = string;
@@ -1511,6 +1511,7 @@ export default function App() {
   const [user, setUser] = useState<any>(undefined); // undefined = loading, null = unauthenticated
   const [isAdmin, setIsAdmin] = useState(false);
   const [isRevoked, setIsRevoked] = useState(false);
+  const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
   const adminEmail = "admin@seunegocio.com"; // Configure admin email here
 
   useEffect(() => {
@@ -1526,6 +1527,11 @@ export default function App() {
           if (docSnap.exists() && docSnap.data().active === true) {
             setIsAdmin(false);
             setIsRevoked(false);
+            if (docSnap.data().passwordStatus === "pending_password") {
+              setNeedsPasswordChange(true);
+            } else {
+              setNeedsPasswordChange(false);
+            }
             setUser(u);
           } else {
             setIsRevoked(true);
@@ -1565,7 +1571,59 @@ export default function App() {
     return <AdminPanel theme={theme} setTheme={setTheme} onLogout={handleLogout} />;
   }
 
+  if (needsPasswordChange) {
+    return <ForcePasswordChangeScreen user={user} theme={theme} setTheme={setTheme} />;
+  }
+
   return <MainApp uid={user.uid} theme={theme} setTheme={setTheme} onLogout={handleLogout} />;
+}
+
+function ForcePasswordChangeScreen({ user, theme }: { user: any, theme: string, setTheme: any }) {
+  const [newCode, setNewCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    if (newCode.length < 4) {
+      setError("O código deve ter pelo menos 4 caracteres.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      await updatePassword(user, newCode);
+      await updateDoc(doc(db, "mno_admin_clients", user.uid), {
+        passwordStatus: "active"
+      });
+      window.location.reload();
+    } catch (e: any) {
+      setError("Erro ao salvar senha. Tente novamente.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={`min-h-screen flex items-center justify-center ${theme==="dark" ? "bg-[#0b111d] text-zinc-100" : "bg-[#f2f5fb] text-zinc-900"}`}>
+      <div className={`p-10 rounded-[28px] max-w-md w-full shadow-xl border mx-4 ${theme==="dark"?"bg-[#0f1829] border-white/10":"bg-white border-zinc-200"}`}>
+        <h2 className="text-[22px] font-[800] mb-2">Quase lá! 🔐</h2>
+        <p className={`text-[14px] mb-6 ${theme==="dark"?"text-zinc-400":"text-zinc-600"}`}>
+          Para garantir sua total privacidade, crie o seu <strong>Código de Acesso Definitivo</strong>. Somente você terá acesso a ele (nem mesmo o administrador poderá ver).
+        </p>
+        
+        {error && <div className="text-red-500 mb-4 bg-red-100 p-3 rounded-xl text-sm font-bold">{error}</div>}
+        
+        <label className="text-[12px] font-[600] text-zinc-500 block mb-1">Novo Código Secreto</label>
+        <input type="password" value={newCode} onChange={e => setNewCode(e.target.value)}
+          placeholder="Ex: nome do seu pet, 123456..."
+          className={`w-full rounded-xl px-4 py-3 text-[15px] outline-none border mb-6 ${theme==="dark" ? "bg-[#0d1424] border-zinc-800 text-zinc-100" : "bg-white border-zinc-200"} focus:ring-4 focus:ring-[#2563eb]/15`} />
+          
+        <button onClick={handleSubmit} disabled={loading}
+          className="w-full bg-[#2563EB] hover:bg-[#1e4fd4] text-white py-3.5 rounded-xl font-[800] transition shadow-lg shadow-blue-600/20">
+          {loading ? "Salvando..." : "Salvar Meu Código"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 

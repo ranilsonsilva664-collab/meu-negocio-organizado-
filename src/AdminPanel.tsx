@@ -42,6 +42,7 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
         name: name,
         whatsapp: whatsapp,
         active: true,
+        passwordStatus: "pending_password",
         createdAt: new Date().toISOString()
       });
       
@@ -101,15 +102,15 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
               <div key={c.id} className={`flex items-center justify-between p-4 rounded-xl border ${theme === "dark" ? "bg-[#0c1424] border-zinc-800" : "bg-zinc-50 border-zinc-200"}`}>
                 <div>
                   {c.name && <div className="font-bold text-lg mb-1">{c.name}</div>}
-                  <div className="font-bold text-lg text-blue-500 tracking-wider bg-blue-500/10 px-3 py-1 rounded-lg w-max mb-1">
-                    {c.code || c.email}
+                  <div className={`font-bold text-lg tracking-wider px-3 py-1 rounded-lg w-max mb-1 ${c.passwordStatus === "pending_password" ? "text-blue-500 bg-blue-500/10" : "text-green-600 bg-green-500/10"}`}>
+                    {c.passwordStatus === "pending_password" ? (c.code || c.email) : "****** (Privado)"}
                   </div>
                   {c.whatsapp && <div className="text-[13px] text-zinc-500 mb-1">WhatsApp: {c.whatsapp}</div>}
                   <div className="text-[12px] text-zinc-500">ID: {c.id}</div>
                 </div>
                 <div className="flex gap-2 flex-wrap justify-end">
-                  {c.whatsapp && (
-                    <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${c.name || ''}, seu acesso foi liberado!\n\nLink: ${window.location.origin}\nSeu Código de Acesso: *${c.code || c.email}*`)}`}
+                  {c.whatsapp && c.passwordStatus === "pending_password" && (
+                    <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${c.name || ''}, seu acesso provisório foi liberado!\n\nLink: ${window.location.origin}\nSeu Código de Acesso Provisório: *${c.code || c.email}*`)}`}
                       target="_blank" rel="noreferrer"
                       className="px-4 py-2 font-bold rounded-xl text-white bg-green-600 hover:bg-green-700">
                       WhatsApp
