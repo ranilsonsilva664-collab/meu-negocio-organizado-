@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, doc, setDoc, onSnapshot, updateDoc } from "firebase/firestore";
+import { collection, doc, setDoc, onSnapshot, updateDoc, deleteDoc } from "firebase/firestore";
 import { db, firebaseApp } from "./utils/firebase";
 
 export function AdminPanel({ onLogout, theme, setTheme }: any) {
@@ -48,6 +48,12 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
     await updateDoc(doc(db, "mno_admin_clients", id), { active: !currentStatus });
   };
 
+  const deleteClient = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este cliente definitivamente?")) {
+      await deleteDoc(doc(db, "mno_admin_clients", id));
+    }
+  };
+
   return (
     <div className={`min-h-screen p-8 ${theme === "dark" ? "bg-[#0b111d] text-zinc-100" : "bg-[#f7f9fd] text-zinc-900"}`}>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -85,10 +91,16 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
                   <div className="font-bold">{c.email}</div>
                   <div className="text-[12px] text-zinc-500">ID: {c.id}</div>
                 </div>
-                <button onClick={() => toggleActive(c.id, c.active)}
-                  className={`px-4 py-2 font-bold rounded-xl text-white ${c.active ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}`}>
-                  {c.active ? "Bloquear Acesso" : "Desbloquear"}
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => toggleActive(c.id, c.active)}
+                    className={`px-4 py-2 font-bold rounded-xl text-white ${c.active ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}`}>
+                    {c.active ? "Bloquear Acesso" : "Desbloquear"}
+                  </button>
+                  <button onClick={() => deleteClient(c.id)}
+                    className="px-4 py-2 font-bold rounded-xl text-white bg-zinc-600 hover:bg-zinc-700">
+                    Excluir
+                  </button>
+                </div>
               </div>
             ))}
             {clients.length === 0 && <div className="text-zinc-500">Nenhum cliente cadastrado ainda.</div>}
