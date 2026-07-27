@@ -374,13 +374,24 @@ function LoginScreen({ theme, setTheme }:{ theme:"light"|"dark"; setTheme:(t:"li
   };
 
   const handleLogin = async () => {
-    if (!email || !pass) return;
+    if (!email) return;
     setLoading(true);
     setError("");
+    
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      const isEmail = email.includes("@");
+      const loginEmail = isEmail ? email : `${email.toLowerCase()}@seunegocio.com`;
+      const loginPass = isEmail ? pass : email;
+      
+      if (isEmail && !pass) {
+        setError("Digite a senha do administrador.");
+        setLoading(false);
+        return;
+      }
+      
+      await signInWithEmailAndPassword(auth, loginEmail, loginPass);
     } catch (e: any) {
-      setError("Email ou senha incorretos.");
+      setError("Código de acesso ou senha incorretos.");
       setLoading(false);
     }
   };
@@ -452,18 +463,21 @@ function LoginScreen({ theme, setTheme }:{ theme:"light"|"dark"; setTheme:(t:"li
           <div className="mt-7 space-y-4">
             {error && <div className="text-red-500 text-sm font-bold bg-red-100 p-3 rounded-xl">{error}</div>}
             <div>
-              <label className="text-[12px] font-[600] text-zinc-500">E-mail</label>
+              <label className="text-[12px] font-[600] text-zinc-500">Código de Acesso (ou E-mail admin)</label>
               <input value={email} onChange={e=>setEmail(e.target.value)}
-                className={`mt-1 w-full rounded-xl px-4 py-3 text-[15px] outline-none card-border ${theme==="dark" ? "bg-[#0d1424] text-zinc-100 placeholder-zinc-500" : "bg-white"} focus:ring-4 focus:ring-[#2563eb]/15`} 
-                placeholder="voce@negocio.com" />
+                onKeyDown={e => e.key === "Enter" && !email.includes("@") && handleLogin()}
+                className={`mt-1 w-full uppercase rounded-xl px-4 py-3 text-[15px] outline-none card-border ${theme==="dark" ? "bg-[#0d1424] text-zinc-100 placeholder-zinc-500" : "bg-white"} focus:ring-4 focus:ring-[#2563eb]/15`} 
+                placeholder="Ex: B7K9X2" />
             </div>
-            <div>
-              <label className="text-[12px] font-[600] text-zinc-500">Senha</label>
-              <input type="password" value={pass} onChange={e=>setPass(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleLogin()}
-                className={`mt-1 w-full rounded-xl px-4 py-3 text-[15px] outline-none card-border ${theme==="dark" ? "bg-[#0d1424] text-zinc-100" : "bg-white"} focus:ring-4 focus:ring-[#2563eb]/15`}
-                placeholder="••••••••" />
-            </div>
+            {email.includes("@") && (
+              <div>
+                <label className="text-[12px] font-[600] text-zinc-500">Senha</label>
+                <input type="password" value={pass} onChange={e=>setPass(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleLogin()}
+                  className={`mt-1 w-full rounded-xl px-4 py-3 text-[15px] outline-none card-border ${theme==="dark" ? "bg-[#0d1424] text-zinc-100" : "bg-white"} focus:ring-4 focus:ring-[#2563eb]/15`}
+                  placeholder="••••••••" />
+              </div>
+            )}
             <button
               disabled={loading}
               onClick={handleLogin}

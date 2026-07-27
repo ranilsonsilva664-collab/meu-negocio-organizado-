@@ -6,10 +6,12 @@ import { db, firebaseApp } from "./utils/firebase";
 
 export function AdminPanel({ onLogout, theme, setTheme }: any) {
   const [clients, setClients] = useState<any[]>([]);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const generateCode = () => {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  };
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "mno_admin_clients"), (snap) => {
@@ -19,25 +21,27 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
   }, []);
 
   const createClient = async () => {
-    if (!email || !password) return;
     setLoading(true);
     setError("");
     try {
+      const code = generateCode();
+      const newEmail = `${code.toLowerCase()}@seunegocio.com`;
+      const newPassword = code;
+
       // Use secondary app to prevent logging out admin
       const secondaryApp = initializeApp(firebaseApp.options, "Secondary");
       const secondaryAuth = getAuth(secondaryApp);
       
-      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, newEmail, newPassword);
       
       await setDoc(doc(db, "mno_admin_clients", cred.user.uid), {
-        email,
+        email: newEmail,
+        code: code,
         active: true,
         createdAt: new Date().toISOString()
       });
       
       await secondaryAuth.signOut();
-      setEmail("");
-      setPassword("");
     } catch (e: any) {
       setError(e.message);
     }
@@ -71,13 +75,9 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
           <h2 className="text-[18px] font-bold mb-4">Novo Cliente</h2>
           {error && <div className="text-red-500 mb-3 text-sm">{error}</div>}
           <div className="flex flex-col sm:flex-row gap-3">
-            <input placeholder="E-mail do cliente" value={email} onChange={e => setEmail(e.target.value)}
-              className={`flex-1 px-4 py-3 rounded-xl outline-none border ${theme === "dark" ? "bg-[#0d1424] border-zinc-800" : "bg-zinc-50 border-zinc-200"}`} />
-            <input placeholder="Senha" type="password" value={password} onChange={e => setPassword(e.target.value)}
-              className={`flex-1 px-4 py-3 rounded-xl outline-none border ${theme === "dark" ? "bg-[#0d1424] border-zinc-800" : "bg-zinc-50 border-zinc-200"}`} />
             <button onClick={createClient} disabled={loading}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">
-              {loading ? "Criando..." : "Criar Acesso"}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition w-full">
+              {loading ? "Gerando..." : "Gerar Novo Acesso (Código Único)"}
             </button>
           </div>
         </div>
@@ -88,7 +88,9 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
             {clients.map(c => (
               <div key={c.id} className={`flex items-center justify-between p-4 rounded-xl border ${theme === "dark" ? "bg-[#0c1424] border-zinc-800" : "bg-zinc-50 border-zinc-200"}`}>
                 <div>
-                  <div className="font-bold">{c.email}</div>
+                  <div className="font-bold text-lg text-blue-500 tracking-wider bg-blue-500/10 px-3 py-1 rounded-lg w-max mb-1">
+                    {c.code || c.email}
+                  </div>
                   <div className="text-[12px] text-zinc-500">ID: {c.id}</div>
                 </div>
                 <div className="flex gap-2">
