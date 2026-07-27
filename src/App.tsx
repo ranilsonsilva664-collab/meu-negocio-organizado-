@@ -140,7 +140,7 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
     monthlySales: 420,
   });
 
-  const [route, setRoute] = useState<"dashboard"|"vendas"|"financeiro"|"produtos"|"estoque"|"clientes"|"metas"|"config">("dashboard");
+  const [route, setRoute] = useState<"dashboard"|"vendas"|"financeiro"|"produtos"|"estoque"|"clientes"|"metas"|"config"|"relatorios">("dashboard");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(()=>{
@@ -161,6 +161,13 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
         ::-webkit-scrollbar-thumb { background: rgba(37,99,235,.35); border-radius: 999px; }
         .hide-scrollbar::-webkit-scrollbar{ display: none;}
         .hide-scrollbar{ -ms-overflow-style:none; scrollbar-width:none;}
+        @media print {
+          aside, header, footer { display: none !important; }
+          .flex-1 { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+          body { background: white !important; color: black !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .no-print { display: none !important; }
+        }
       `}</style>
 
       <div className="flex min-h-screen">
@@ -181,6 +188,7 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
               {key:"estoque", label:"Estoque", icon: "📊"},
               {key:"clientes", label:"Clientes", icon: "👥"},
               {key:"metas", label:"Metas", icon: "🎯"},
+              {key:"relatorios", label:"Relatórios", icon: "📄"},
               {key:"config", label:"Configurações", icon: "⚙️"},
             ].map((i:any)=>(
               <button key={i.key} onClick={()=>setRoute(i.key)}
@@ -296,6 +304,16 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
                 transactions={transactions}
               />
             )}
+            {route==="relatorios" && (
+              <ReportsView
+                theme={theme}
+                products={products}
+                sales={sales}
+                transactions={transactions}
+                clients={clients}
+                goals={goals}
+              />
+            )}
             {route==="config" && (
               <ConfigView
                 theme={theme}
@@ -330,6 +348,7 @@ export function MainApp({ uid, onLogout, theme, setTheme }: { uid: string, onLog
                 {key:"estoque", label:"Estoque", icon: "📊"},
                 {key:"clientes", label:"Clientes", icon: "👥"},
                 {key:"metas", label:"Metas", icon: "🎯"},
+                {key:"relatorios", label:"Relatórios", icon: "📄"},
                 {key:"config", label:"Configurações", icon: "⚙️"},
               ].map((i:any) => (
                 <button key={i.key} onClick={()=>{ setRoute(i.key); setMobileNavOpen(false);}}
@@ -1823,6 +1842,126 @@ function Modal({ theme, title, children, onClose }:{
           <button onClick={onClose} className="text-[13px] px-3 py-1.5 rounded-lg border">Fechar</button>
         </div>
         {children}
+      </div>
+    </div>
+  );
+}
+
+/* RELATORIOS (REPORTS) */
+function ReportsView({ theme, products, sales, transactions, clients, goals }: any) {
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  const monthlySales = sales.filter((s:any) => {
+    const d = new Date(s.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+  
+  const annualSales = sales.filter((s:any) => new Date(s.date).getFullYear() === currentYear);
+  
+  const monthlyRevenue = monthlySales.reduce((acc:number, s:any) => acc + s.total, 0);
+  const annualRevenue = annualSales.reduce((acc:number, s:any) => acc + s.total, 0);
+  
+  const stockTotalValue = products.reduce((acc:number, p:any) => acc + (p.cost * p.stock), 0);
+  const lowStockProducts = products.filter((p:any) => p.stock <= p.minStock);
+
+  const topClients = [...clients].sort((a:any, b:any) => b.totalSpent - a.totalSpent).slice(0, 5);
+
+  const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between no-print gap-4">
+        <div>
+          <h1 className="text-[24px] font-[800] tracking-[-0.02em]">Relatório Completo</h1>
+          <p className="text-[14px] text-zinc-500">Visão geral do negócio (pronta para impressão).</p>
+        </div>
+        <button onClick={() => window.print()}
+          className="px-6 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/20 transition">
+          📄 Salvar em PDF
+        </button>
+      </div>
+
+      <div className={`p-5 sm:p-8 rounded-[24px] border ${theme==="dark"?"bg-[#0e1624] border-white/10":"bg-white border-zinc-200"} print:border-none print:shadow-none print:p-0`}>
+        <div className="text-center mb-8 border-b border-zinc-200 dark:border-white/10 pb-6 hidden print:block">
+          <h2 className="text-[28px] font-bold">Relatório Gerencial</h2>
+          <p className="text-zinc-500">Gerado em: {new Date().toLocaleDateString('pt-BR')}</p>
+        </div>
+
+        <div className="space-y-10">
+          {/* Financeiro */}
+          <section>
+            <h3 className="text-[18px] font-bold mb-4 flex items-center gap-2 border-b border-zinc-200 dark:border-white/10 pb-2">💰 Resumo Financeiro</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Faturamento Mensal (Atual)</div>
+                <div className="text-[22px] font-bold text-blue-500">{BRL.format(monthlyRevenue)}</div>
+                <div className="text-[12px] text-zinc-400 mt-1">Meta: {BRL.format(goals.monthlyRevenue)}</div>
+              </div>
+              <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Faturamento Anual (Atual)</div>
+                <div className="text-[22px] font-bold text-blue-500">{BRL.format(annualRevenue)}</div>
+                <div className="text-[12px] text-zinc-400 mt-1">Meta: {BRL.format(goals.annualRevenue)}</div>
+              </div>
+            </div>
+          </section>
+
+          {/* Estoque */}
+          <section className="print:page-break">
+            <h3 className="text-[18px] font-bold mb-4 flex items-center gap-2 border-b border-zinc-200 dark:border-white/10 pb-2">📦 Relatório de Estoque</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Total de Itens Cadastrados</div>
+                <div className="text-[22px] font-bold">{products.length}</div>
+              </div>
+              <div className={`p-4 rounded-xl border ${theme==="dark"?"bg-[#142034] border-white/10":"bg-zinc-50 border-zinc-200"}`}>
+                <div className="text-[13px] text-zinc-500 font-semibold mb-1">Valor Parado (Custo)</div>
+                <div className="text-[22px] font-bold text-red-500">{BRL.format(stockTotalValue)}</div>
+              </div>
+            </div>
+            
+            {lowStockProducts.length > 0 && (
+              <div className={`p-4 rounded-xl border border-orange-200 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-500/20`}>
+                <h4 className="font-bold text-orange-600 dark:text-orange-400 mb-2">Atenção - Baixo Estoque:</h4>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  {lowStockProducts.map((p:any) => (
+                    <li key={p.id}>{p.name} — Restam {p.stock} (Mínimo recomendado: {p.minStock})</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          {/* Clientes */}
+          <section className="print:page-break">
+            <h3 className="text-[18px] font-bold mb-4 flex items-center gap-2 border-b border-zinc-200 dark:border-white/10 pb-2">👥 Top Clientes</h3>
+            <div className={`overflow-x-auto rounded-xl border ${theme==="dark"?"border-white/10":"border-zinc-200"}`}>
+              <table className="w-full text-left border-collapse">
+                <thead className={theme==="dark"?"bg-[#142034]":"bg-zinc-50"}>
+                  <tr className="border-b border-zinc-200 dark:border-white/10">
+                    <th className="py-3 px-4 text-[13px] text-zinc-500">Nome do Cliente</th>
+                    <th className="py-3 px-4 text-[13px] text-zinc-500 text-right">Pedidos</th>
+                    <th className="py-3 px-4 text-[13px] text-zinc-500 text-right">Total Gasto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topClients.map((c:any) => (
+                    <tr key={c.id} className="border-b border-zinc-200 dark:border-white/10 last:border-0">
+                      <td className="py-3 px-4 font-semibold">{c.name || 'Sem nome'}</td>
+                      <td className="py-3 px-4 text-right">{c.orderCount}</td>
+                      <td className="py-3 px-4 text-right text-[#2563eb] font-bold">{BRL.format(c.totalSpent)}</td>
+                    </tr>
+                  ))}
+                  {topClients.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="py-6 text-center text-zinc-500">Nenhum cliente registrado.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
