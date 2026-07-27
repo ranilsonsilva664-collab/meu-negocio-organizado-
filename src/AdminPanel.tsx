@@ -8,6 +8,8 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [name, setName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
 
   const generateCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -37,11 +39,15 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
       await setDoc(doc(db, "mno_admin_clients", cred.user.uid), {
         email: newEmail,
         code: code,
+        name: name,
+        whatsapp: whatsapp,
         active: true,
         createdAt: new Date().toISOString()
       });
       
       await secondaryAuth.signOut();
+      setName("");
+      setWhatsapp("");
     } catch (e: any) {
       setError(e.message);
     }
@@ -74,7 +80,13 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
         <div className={`p-6 rounded-[22px] shadow-sm border ${theme === "dark" ? "bg-[#0e1626] border-white/10" : "bg-white border-zinc-200"}`}>
           <h2 className="text-[18px] font-bold mb-4">Novo Cliente</h2>
           {error && <div className="text-red-500 mb-3 text-sm">{error}</div>}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input placeholder="Nome do Cliente (opcional)" value={name} onChange={e => setName(e.target.value)}
+                className={`flex-1 px-4 py-3 rounded-xl outline-none border ${theme === "dark" ? "bg-[#0d1424] border-zinc-800" : "bg-zinc-50 border-zinc-200"}`} />
+              <input placeholder="WhatsApp (DDD+Número)" value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
+                className={`flex-1 px-4 py-3 rounded-xl outline-none border ${theme === "dark" ? "bg-[#0d1424] border-zinc-800" : "bg-zinc-50 border-zinc-200"}`} />
+            </div>
             <button onClick={createClient} disabled={loading}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition w-full">
               {loading ? "Gerando..." : "Gerar Novo Acesso (Código Único)"}
@@ -88,15 +100,24 @@ export function AdminPanel({ onLogout, theme, setTheme }: any) {
             {clients.map(c => (
               <div key={c.id} className={`flex items-center justify-between p-4 rounded-xl border ${theme === "dark" ? "bg-[#0c1424] border-zinc-800" : "bg-zinc-50 border-zinc-200"}`}>
                 <div>
+                  {c.name && <div className="font-bold text-lg mb-1">{c.name}</div>}
                   <div className="font-bold text-lg text-blue-500 tracking-wider bg-blue-500/10 px-3 py-1 rounded-lg w-max mb-1">
                     {c.code || c.email}
                   </div>
+                  {c.whatsapp && <div className="text-[13px] text-zinc-500 mb-1">WhatsApp: {c.whatsapp}</div>}
                   <div className="text-[12px] text-zinc-500">ID: {c.id}</div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-end">
+                  {c.whatsapp && (
+                    <a href={`https://wa.me/55${c.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${c.name || ''}, seu acesso foi liberado!\n\nLink: ${window.location.origin}\nSeu Código de Acesso: *${c.code || c.email}*`)}`}
+                      target="_blank" rel="noreferrer"
+                      className="px-4 py-2 font-bold rounded-xl text-white bg-green-600 hover:bg-green-700">
+                      WhatsApp
+                    </a>
+                  )}
                   <button onClick={() => toggleActive(c.id, c.active)}
-                    className={`px-4 py-2 font-bold rounded-xl text-white ${c.active ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}`}>
-                    {c.active ? "Bloquear Acesso" : "Desbloquear"}
+                    className={`px-4 py-2 font-bold rounded-xl text-white ${c.active ? "bg-red-500 hover:bg-red-600" : "bg-zinc-500 hover:bg-zinc-600"}`}>
+                    {c.active ? "Bloquear" : "Desbloquear"}
                   </button>
                   <button onClick={() => deleteClient(c.id)}
                     className="px-4 py-2 font-bold rounded-xl text-white bg-zinc-600 hover:bg-zinc-700">
