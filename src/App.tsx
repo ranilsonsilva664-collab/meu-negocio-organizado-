@@ -1401,10 +1401,10 @@ function MetasView({ theme, goals, setGoals, sales, transactions }:{
       <div className={`rounded-[18px] card-border soft-shadow p-5 ${theme==="dark"?"bg-[#0e1626]":"bg-white"}`}>
         <div className="font-[800] mb-3">Definir metas</div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <NumberField label="Meta mensal (faturamento)" value={goals.monthlyRevenue} onChange={v=>setGoals(g=>({...g, monthlyRevenue:v}))}/>
-          <NumberField label="Meta anual" value={goals.annualRevenue} onChange={v=>setGoals(g=>({...g, annualRevenue:v}))}/>
-          <NumberField label="Meta de lucro mensal" value={goals.monthlyProfit} onChange={v=>setGoals(g=>({...g, monthlyProfit:v}))}/>
-          <NumberField label="Meta de vendas (pedidos)" value={goals.monthlySales} onChange={v=>setGoals(g=>({...g, monthlySales:v}))} isCount/>
+          <NumberField theme={theme} label="Meta mensal (faturamento)" value={goals.monthlyRevenue} onChange={v=>setGoals(g=>({...g, monthlyRevenue:v}))}/>
+          <NumberField theme={theme} label="Meta anual" value={goals.annualRevenue} onChange={v=>setGoals(g=>({...g, annualRevenue:v}))}/>
+          <NumberField theme={theme} label="Meta de lucro mensal" value={goals.monthlyProfit} onChange={v=>setGoals(g=>({...g, monthlyProfit:v}))}/>
+          <NumberField theme={theme} label="Meta de vendas (pedidos)" value={goals.monthlySales} onChange={v=>setGoals(g=>({...g, monthlySales:v}))} isCount/>
         </div>
         <div className="text-[12px] text-zinc-500 mt-3">Exemplo: Meta R$10.000 • Atual R$7.500 • Progresso 75%</div>
       </div>
@@ -1433,15 +1433,15 @@ function MetasView({ theme, goals, setGoals, sales, transactions }:{
   );
 }
 
-function NumberField({ label, value, onChange, isCount }:{
-  label:string; value:number; onChange:(n:number)=>void; isCount?:boolean;
+function NumberField({ theme, label, value, onChange, isCount }:{
+  theme:"light"|"dark"; label:string; value:number; onChange:(n:number)=>void; isCount?:boolean;
 }){
   return (
     <div>
       <label className="text-[12px] text-zinc-500 font-[600]">{label}</label>
       <input type="number" value={value}
         onChange={e=>onChange(+e.target.value)}
-        className="mt-1 w-full rounded-xl px-3 py-3 card-border bg-white" />
+        className={`mt-1 w-full rounded-xl px-3 py-3 card-border outline-none ${theme==="dark"?"bg-[#0d1424] text-white":"bg-white"}`} />
       <div className="text-[11px] text-zinc-500 mt-1">{isCount ? "Quantidade" : "Em R$"}</div>
     </div>
   );
