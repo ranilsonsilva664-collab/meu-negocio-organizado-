@@ -1719,7 +1719,7 @@ function PdvView({ theme, products, clients, setProducts, setTransactions, setSa
       id: uid(),
       date: todayISO(),
       total,
-      clientId: selectedClient || undefined,
+      clientId: selectedClient || "",
       items: cart.map(i => ({ productId: i.product.id, qty: i.qty, unitPrice: i.product.price }))
     };
     setSales(prev => [newSale, ...prev]);
